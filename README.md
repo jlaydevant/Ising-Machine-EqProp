@@ -10,7 +10,7 @@ The project contains the following folder:
 + `Conv/QA-SA`: contain the code to train the small convolutional neural network with an Ising machine (the D-Wave Ising machine or with Simulated annealing - /!\ the D-Wave Ising machine requires the user to have acces to the machine)
 
 
-![GitHub Logo](/fig.pdf)<!-- .element height="10%" width="10%" -->
+![GitHub Logo](/Fig.pdf)<!-- .element height="10%" width="10%" -->
 
 
 
