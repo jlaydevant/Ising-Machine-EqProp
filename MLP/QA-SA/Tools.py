@@ -88,49 +88,6 @@ class DefineDataset(Dataset):
         return (len(self.x))
 
 
-def generate_data(args):
-    '''
-    Generate training and testing data for 2D classification - target is replicated if the output layyer is augmented
-    '''
-    expand_output = int(args.layersList[2]/2)
-
-    # Training set
-    np.random.seed(0)
-    inputs = np.random.rand(args.N_data, args.layersList[0])
-    if args.mode == "qubo":
-        target = np.zeros((args.N_data, 2))
-    elif args.mode == "ising":
-        target = -1*np.ones((args.N_data, 2))
-    np.put_along_axis(target, ((inputs[:,1]>=inputs[:,0])*1).reshape(args.N_data, 1), 1, axis = 1)
-
-    # visualize_dataset([inputs, target], label = 'train')
-    target = target.repeat(expand_output, axis = 1)
-
-    # define it as a dataset form
-    train_dataset = CustomDataset(inputs, labels = target)
-    # data loader
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    # Testing set
-    np.random.seed(10)
-    inputs_test = np.random.rand(args.N_data_test, args.layersList[0])
-    if args.mode == "qubo":
-        target = np.zeros((args.N_data_test, 2))
-    elif args.mode == "ising":
-        target = -1*np.ones((args.N_data_test, 2))
-    np.put_along_axis(target_test, ((inputs_test[:,1]>=inputs_test[:,0])*1).reshape(args.N_data_test, 1), 1, axis = 1)
-
-    # visualize_dataset([inputs_test, target_test], label = 'test')
-    target_test = target_test.repeat(expand_output, axis = 1)
-
-    # define it as a dataset form
-    test_dataset = CustomDataset(inputs_test, labels = target_test)
-    # data loader
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False)
-
-    return train_loader, test_loader
-
-
 def generate_digits(args):
     '''
     Generate the dataloaders for digits dataset
@@ -139,14 +96,7 @@ def generate_digits(args):
 
     x_train, x_test, y_train, y_test = train_test_split(digits.data, digits.target, test_size=0.1, random_state=10, shuffle=True)
     normalisation = 8
-    x_train, x_test = x_train / normalisation -1 , x_test / normalisation - 1  # -1 to 1
-    #x_train, x_test = x_train / normalisation , x_test / normalisation
-
-    #train_data = DefineDataset(x_train[np.where((y_train==0) | (y_train==1))][:40], labels=y_train[np.where((y_train==0) | (y_train==1))][:40], target_transforms=ReshapeTransformTarget(10, args))
-    #test_data = DefineDataset(x_test[:30], labels=y_test[:30], target_transforms=ReshapeTransformTarget(10, args))
-
-    #train_data = DefineDataset(x_train[:10], labels=y_train[:10], target_transforms=ReshapeTransformTarget(10, args))
-    #test_data = DefineDataset(x_test[:5], labels=y_test[:5], target_transforms=ReshapeTransformTarget(10, args))
+    x_train, x_test = x_train / normalisation, x_test / normalisation
 
     train_data = DefineDataset(x_train, labels=y_train, target_transforms=ReshapeTransformTarget(10, args))
     test_data = DefineDataset(x_test, labels=y_test, target_transforms=ReshapeTransformTarget(10, args))
@@ -198,7 +148,6 @@ def generate_mnist(args):
         mnist_test = torchvision.datasets.MNIST(root='./data', train=False, download=True,
                                                 transform=torchvision.transforms.Compose(transforms_test),
                                                 target_transform=ReshapeTransformTarget(10, args))
-        # mnist_test.data, mnist_test.targets = mnist_test.data[:args.N_data_test], mnist_test.targets[:args.N_data_test]
 
         mnist_test_data, mnist_test_targets, comp = torch.empty(N_data_test,28,28,dtype=mnist_test.data.dtype), torch.empty(N_data_test,dtype=mnist_test.targets.dtype), torch.zeros(N_class)
         idx_0, idx_1 = 0, 0
@@ -226,9 +175,9 @@ def createBQM(net, args, input, beta = 0, target = None, mode = None):
 
         if target is not None:
             if args.mode == "qubo":
-                bias_nudge = 0.5*beta*(2*target-1) #cf cahier orgmode pour la formule
+                bias_nudge = 0.5*beta*(2*target-1)
             elif args.mode == "ising":
-                bias_nudge = -beta*target #good nudge! cf overleaf pour la dérivation
+                bias_nudge = -beta*target
             h.update({idx_loc + args.layersList[1]: (bias + bias_nudge[idx_loc]).clip(-bias_lim,bias_lim).item() for idx_loc, bias in enumerate(net.bias_1)})
         else:
             h.update({idx_loc + args.layersList[1]: bias.clip(-bias_lim,bias_lim).item() for idx_loc, bias in enumerate(net.bias_1)})
@@ -238,29 +187,15 @@ def createBQM(net, args, input, beta = 0, target = None, mode = None):
             for j in range(args.layersList[2]):
                 J.update({(k,j+args.layersList[1]): net.weights_1[k][j].clip(-1,1)})
 
-        # J.update({(j+args.layersList[1],j+args.layersList[1]+1):1})
-
         if args.mode == "qubo":
             model = dimod.BinaryQuadraticModel(h, J, 0, dimod.BINARY)
         elif args.mode == "ising":
-            model = dimod.BinaryQuadraticModel.from_ising(h, J, 0) #dimod.BinaryQuadraticModel(h, J, 0, dimod.SPIN)
+            model = dimod.BinaryQuadraticModel.from_ising(h, J, 0)
 
         if mode == "DEBUG":
             print(dimod.ExactSolver().sample_ising(h, J))
 
         return model
-
-
-def augment_data(data):
-    '''
-    Add data augmentation to MNIST data: random shift of 0,1,2 pixels in both x,y dimensions
-    '''
-    delta_x, delta_y = random.randint(-1, 1), random.randint(-1, 1)
-
-    data = torch.from_numpy(np.roll(data.reshape(28,28), delta_x, axis = 1)).view(-1)
-    data = torch.from_numpy(np.roll(data.reshape(28,28), delta_y, axis = 0)).view(-1)
-
-    return data
 
 
 def train(net, args, train_loader, simu_sampler, exact_sampler, qpu_sampler):
@@ -347,27 +282,9 @@ def train(net, args, train_loader, simu_sampler, exact_sampler, qpu_sampler):
             seq = [store_seq[:,:args.layersList[1]], store_seq[:,args.layersList[1]:]]
             s   = [store_s[:,:args.layersList[1]], store_s[:,args.layersList[1]:]]
 
-            # print("seq - memory = " + str(sys.getsizeof(seq)))
-            # print("s - memory = " + str(sys.getsizeof(s)))
-
-            # print("-------------------------")
-            # print("seq_output = " + str((seq[1]+1)/2))
-            # print("target = " + str((TARGET+1)/2))
-            # print("s_output   = " + str((s[1]+1)/2))
-            # print("=======================")
-            # print("seq_hidden = " + str((seq[0]+1)/2))
-            # print("s_hidden   = " + str((s[0]+1)/2))
-            # print("s_hidden-seq_hidden= " + str((s[0]+1)/2-(seq[0]+1)/2))
-            # print("-------------------------")
-
-            ## Compute loss and error for simulated sampling
-            #loss, pred = net.computeLossError(exact_seq, target, args)
-
-            #exact_pred += pred
-            #exact_loss += loss
 
             ## Compute loss and error for QPU sampling
-            loss, pred = net.computeLossError(seq, TARGET, args, stage = 'training')
+            loss, pred = net.computeLossAcc(seq, TARGET, args, stage = 'training')
 
             qpu_pred += pred
             qpu_loss += loss

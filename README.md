@@ -7,7 +7,7 @@ The project contains the following folder:
 
 + `MLP/Deterministic`: contain the code to train the fully-connected neural network with a deterministic dynamics (with binary neurons and real-value weights)
 
-+ `Conv/SQA-SA`: contain the code to train the small convolutional neural network with an Ising machine (the D-Wave Ising machine or with Simulated annealing - /!\ the D-Wave Ising machine requires the user to have acces to the machine)
++ `Conv/QA-SA`: contain the code to train the small convolutional neural network with an Ising machine (the D-Wave Ising machine or with Simulated annealing - /!\ the D-Wave Ising machine requires the user to have acces to the machine)
 
 
 # Training the fully-connected architecture with an Ising machine (D-Wave, Simulated annealing)
@@ -22,45 +22,44 @@ The parser accepts the following arguments:
 
 |Arguments|Description|Example|
 |-------|------|------|
-|`device`| ID (0, 1, ...) of the GPU if provided - -1 for CPU| `--device 0`|
-
+|`simulated`| 0 if the D-Wave Ising machine is used (need access to the D-Wave Ising machine) - 1 if the Simulated annealing sampler is used| `--simulated 0`|
 
 + Architecture settings:
 
 |Arguments|Description|Example|
 |-------|------|------|
-|`layersList`|List of fully connected layers in the network| `--layerList 784 120 40`|
-|`expand_output`|How much we duplicate the output neurons (required for nudging a binary system)| `--expand_output 4`|
+|`layersList`|Number of neurons in the output layer| `--layerList 784 120 40`|
+|`expand_output`|How much we duplicate the output neurons (required for nudging a binary system)| `--expand_output 2`|
 
 + EqProp settings:
 
 |Arguments|Description|Example|
 |-------|------|------|
-|`activationFun`|Activation function used in the network| `--activationFun heaviside`|
-|`T`|Number of time steps for the free phase| `--T 20`|
-|`Kmax`|Number of time steps for the nudge phase| `--Kmax 10`|
-|`beta`|Nudging parameter|`--beta 2`|
-|`gamma_neur`|Time step|`--gamma_neur 0.5`|
-|`clamped`|Clamp the neurons states (1) or not (0)|`--clamped 1`|
-|`rho_threshold`|Offset for the jump of the heaviside function|`--rho_threshold 0.5`|
+|`mode`|Type of Ising problem to be submitted to the Ising machine - ising= {+/- 1 spins}, qubo: {0/1 spins}| `--mode ising`|
+|`beta`|Nudging parameter| `-beta 5`|
+|`n_iter_free`|Number of iterations for the free phase on a single data point| `--n_iter_free 10`|
+|`n_iter_nudge`|Number of iterations for the nudge phase on a single data point| `--n_iter_nudge 10`|
+|`frac_anneal_nudge`|Fraction of system non-annealed during the second phase| `--frac_anneal_nudge 0.25`|
 
-
---
 + Training settings:
 
 |Arguments|Description|Example|
 |-------|------|------|
-|`dataset`|Selects which dataset to select to train the network on (mnist or digits)|`--dataset mnist`|
+|`dataset`|Dataset used to train the network| `--dataset mnist`|
 |`N_data`|Number of training images (for MNIST dataset)|`--N_data mnist`|
 |`N_data_test`|Number of testing images (for MNIST dataset)|`--N_data_test mnist`|
-|`lrW`|List of the learning for the biases|`--lrBias 1e-2 1e-2`|
-|`weightClip`|Clamp the weights to an absolute given value|`--weightClip 1`|
-|`lrB`|List of the learning for the biases|`--lrBias 1e-2 1e-2`|
-|`biasClip`|Clamp the biases to an absolute given value|`--biasClip 1`|
-|`batchSize`|Size of training mini-batches|`--batchSize 1`|
-|`test_batchSize`|Size of testing mini-batches|`--test_batchSize 128`|
-|`epochs`|Number of epochs to train the network|`--epochs 50`|
-
+|`lrW0`|Learning rate for the weights of the fully-connected layer between the input and the hidden layer| `--lrW0 0.01`|
+|`gain_weight0`|Multiplicative gain for initializing the weights of the fully-connected layer between the input and the hidden layer| `--gain_weight0 0.5`|
+|`lrW1`|Learning rate for the weights of the fully-connected layer between the hidden and the output layer| `--lrW1 0.01`|
+|`gain_weight1`|Multiplicative gain for initializing the weights of the fully-connected layer between the hidden and output layer| `--gain_weight1 0.25`|
+|`lrB0`|Learning rate for the biases of the hidden layer| `--lrB0 0.001`|
+|`lrB1`|Learning rate for the biases of the output layer| `--lrB1 0.001`|
+|`bias_lim`|Maximal absolute value for the biases| `--bias_lim 4`|
+|`batchSize`|Batch size (train and test)| `--batchSize 1`|
+|`epochs`|Number of epochs| `--epochs 20`|
+|`chain_strength`|Value of the coupling in the chain of identical spins| `--chain_strength 1`|
+|`auto_scale`|Enable (1) or disable (0) the auto-scale  feature| `--auto_scale 0`|
+|`load_model`|Create a new model (0) or load (>0) a model already or partially trained to continue the training | `--load-model 0`|
 
 
 ## Details about `Network.py`:
@@ -70,26 +69,26 @@ Each network has the following built-in functions:
 
 + `init`: specifies the parameter and the architecture of the network.
 
-+ `get_bin_state`: return the binary state of a layer given the internal state at each time step
++ `computeLossAcc`: compute the loss and if the network predict the good class for the input (accuracy) 
 
-+ `stepper`: compute the update for the neurons state at a specific time step (Euler scheme)
++ `computeGrads`: compute the instantaneous gradient for each parameter
 
-+ `forward`: solve the dynamics of the system for a specific number of time steps (free or nudge phase)
++ `updateParams`: update all parameters in the network according to the gradient computed in computeGradient - vanilla SGD
 
-+ `computeGrads`: compute the gradient of the parameters given the two equilibrium states
 
-+ `updateWeight`: update all parameters in the network according to the gradient computed in computeGradient - vanilla SGD
-
-+ `initHidden`: initialize the state of network before each free phase.
     
-    
-
 ## Details about `Tools.py`:
 Each file contains the same functions but adapted for each architecture.
 
-+ `train_bin`: trains the network over the whole training dataset once. Run the free and nudge phase and update the weights. Track the number of changes in the weights.
++ `generate_digits`: generate the digits dataset from sklearn.
 
-+ `test_bin`: tests the network over the whole testing dataset once.
++ `generate_mnist`: generate the MNIST/X dataset given the number of training and testing images specified in the parser.
+
++ `createBQM`: translates the neural network architecture into a Ising problem (ie convert the weights into couplings between nodes and biases into individual bias fields)
+
++ `train`: trains the network over the whole training dataset once. Run the free and nudge phase and update the weights. Track the number of changes in the weights.
+
++ `test`: tests the network over the whole testing dataset once.
 
 + `initDataframe`: inits the dataframe where we store the training data.
 
@@ -99,20 +98,11 @@ Each file contains the same functions but adapted for each architecture.
 
 + `saveHyperparameters`: creates a .txt file with all hyperparameters in the parser in the folder 'S-X'.
 
-+ `generate_digits`: generate the digits dataset from sklearn.
-
-+ `generate_mnist`: generate the MNIST/X dataset given the number of training and testing images specified in the parser.
-
 
 ## Commands to be run in the terminal to reproduce the results of the paper:
     ```
-    python MLP/Determnistic/main.py --dataset mnist --N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --lrW 0.1 0.1 --weightClip 1 -- --lrB 0.1 0.1 --biasClip 1 --batchSize 1 --test_batchSize 128 --epochs 50 --T 20 --Kmax 10 --beta 2  --activationFun heaviside --gamma_neur 0.5 --clamped 1 --rho_threshold 0.5 --device -1 --
-	```
-
-
-
-
-
+    python MLP/QA-SA/main.py --load_model 0 --simulated 1 --dataset mnist -- N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --mode ising --beta 5 --n_iter_free 10 --n_iter_nudge 10 --frac_anneal_nudge 0.25 --lrW0 0.01 --gain_weight0 0.5 --lrW1 0.01 --gain_weight0 0.25 --lrB0 0.001 --lrB1 0.001 --batchSize 1 --epochs 50 --chain_strenght 1 --auto_scale 0
+    ```
 
 
 # Training the fully-connected architecture with a deterministic dynamics 
@@ -128,7 +118,6 @@ The parser accepts the following arguments:
 |-------|------|------|
 |`device`| ID (0, 1, ...) of the GPU if provided - -1 for CPU| `--device 0`|
 
-
 + Architecture settings:
 
 |Arguments|Description|Example|
@@ -148,8 +137,6 @@ The parser accepts the following arguments:
 |`clamped`|Clamp the neurons states (1) or not (0)|`--clamped 1`|
 |`rho_threshold`|Offset for the jump of the heaviside function|`--rho_threshold 0.5`|
 
-
---
 + Training settings:
 
 |Arguments|Description|Example|
@@ -164,8 +151,6 @@ The parser accepts the following arguments:
 |`batchSize`|Size of training mini-batches|`--batchSize 1`|
 |`test_batchSize`|Size of testing mini-batches|`--test_batchSize 128`|
 |`epochs`|Number of epochs to train the network|`--epochs 50`|
-
-
 
 ## Details about `Network.py`:
 Each file contains a class of a network. Each class inherits from a nn.Module.
@@ -187,7 +172,6 @@ Each network has the following built-in functions:
 + `initHidden`: initialize the state of network before each free phase.
     
     
-
 ## Details about `Tools.py`:
 Each file contains the same functions but adapted for each architecture.
 
@@ -212,7 +196,6 @@ Each file contains the same functions but adapted for each architecture.
     ```
     python MLP/Determnistic/main.py --dataset mnist --N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --lrW 0.1 0.1 --weightClip 1 -- --lrB 0.1 0.1 --biasClip 1 --batchSize 1 --test_batchSize 128 --epochs 50 --T 20 --Kmax 10 --beta 2  --activationFun heaviside --gamma_neur 0.5 --clamped 1 --rho_threshold 0.5 --device -1 --
 	```
-
 
 # Training the convolutional architecture
 
@@ -241,6 +224,7 @@ The parser accepts the following arguments:
 |`pool_coef`|Coefficient used for the averaged pooling operation| `--pool_coef 0.25`|
 
 + EqProp settings:
+
 |Arguments|Description|Example|
 |-------|------|------|
 |`mode`|Type of Ising problem to be submitted to the Ising machine - ising= {+/- 1 spins}, qubo: {0/1 spins}| `--mode ising`|
@@ -250,6 +234,7 @@ The parser accepts the following arguments:
 |`frac_anneal_nudge`|Fraction of system non-annealed during the second phase| `--frac_anneal_nudge 0.25`|
 
 + Training settings:
+
 |Arguments|Description|Example|
 |-------|------|------|
 |`dataset`|Dataset used to train the network| `--dataset patterns`|
@@ -273,22 +258,19 @@ Each network has the following built-in functions:
 
 + `sample_to_s`: convert the sample obtained with the D-Wave Ising machine or the Simulated annealing sampler to tensors that match the dimension of each layer
 
-+ `computeLossAcc`: compute the loss and the if the network predict the good class for the input (accuracy) 
++ `computeLossAcc`: compute the loss and if the network predict the good class for the input (accuracy) 
 
 + `computeGradients`: compute the instantaneous gradient for each parameter
 
 + `updateParams`: update all parameters in the network according to the gradient computed in computeGradient - vanilla SGD
 
-+ `initHidden`: initialize the state of network before each free phase.
-    
-    
 
 ## Details about `Tools.py`:
 Each file contains the same functions but adapted for each architecture.
 
-+ `train_bin`: trains the network over the whole training dataset once. Run the free and nudge phase and update the weights. Track the number of changes in the weights.
++ `train`: trains the network over the whole training dataset once. Run the free and nudge phase and update the weights. Track the number of changes in the weights.
 
-+ `test_bin`: tests the network over the whole testing dataset once.
++ `test`: tests the network over the whole testing dataset once.
 
 + `initDataframe`: inits the dataframe where we store the training data.
 
@@ -303,18 +285,3 @@ Each file contains the same functions but adapted for each architecture.
     ```
     python Conv/QA-SA/main.py --simulated 1 --dataset pattern --layersList 4 --expand_output 2 --convList 4 1 --padding 0 --kernelSize 2 --stride 1 --Fpool 2 --pool_coef 0.25 --lrWeightsFC 0.1 --lrWeightsCONV 0.1 --lrBiasFC 0.1 --lrBiasCONV 0.1 --batchSize 1 --epochs 20 --chain_strenght 2 --auto_scale 0
 	```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
