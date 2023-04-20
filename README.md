@@ -10,6 +10,10 @@ The project contains the following folder:
 + `Conv/QA-SA`: contain the code to train the small convolutional neural network with an Ising machine (the D-Wave Ising machine or with Simulated annealing - /!\ the D-Wave Ising machine requires the user to have acces to the machine)
 
 
+![GitHub Logo](/fig.pdf)<!-- .element height="10%" width="10%" -->
+
+
+
 # Training the fully-connected architecture with an Ising machine (D-Wave, Simulated annealing)
 The code for training the convolutional architecture can be found in the folder ```./MLP/QA-SA```.
 
