@@ -101,9 +101,9 @@ Each file contains the same functions but adapted for each architecture.
 
 ## Commands to be run in the terminal to reproduce the results of the paper:
 
-    ```
-    python MLP/QA-SA/main.py --load_model 0 --simulated 1 --dataset mnist -- N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --mode ising --beta 5 --n_iter_free 10 --n_iter_nudge 10 --frac_anneal_nudge 0.25 --lrW0 0.01 --gain_weight0 0.5 --lrW1 0.01 --gain_weight0 0.25 --lrB0 0.001 --lrB1 0.001 --batchSize 1 --epochs 50 --chain_strenght 1 --auto_scale 0
-    ```
+```
+python MLP/QA-SA/main.py --load_model 0 --simulated 1 --dataset mnist -- N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --mode ising --beta 5 --n_iter_free 10 --n_iter_nudge 10 --frac_anneal_nudge 0.25 --lrW0 0.01 --gain_weight0 0.5 --lrW1 0.01 --gain_weight0 0.25 --lrB0 0.001 --lrB1 0.001 --batchSize 1 --epochs 50 --chain_strenght 1 --auto_scale 0
+```
 
 
 # Training the fully-connected architecture with a deterministic dynamics 
@@ -195,9 +195,9 @@ Each file contains the same functions but adapted for each architecture.
 
 ## Commands to be run in the terminal to reproduce the results of the paper:
 
-    ```
-    python MLP/Determnistic/main.py --dataset mnist --N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --lrW 0.1 0.1 --weightClip 1 -- --lrB 0.1 0.1 --biasClip 1 --batchSize 1 --test_batchSize 128 --epochs 50 --T 20 --Kmax 10 --beta 2  --activationFun heaviside --gamma_neur 0.5 --clamped 1 --rho_threshold 0.5 --device -1 --
-	```
+```
+python MLP/Determnistic/main.py --dataset mnist --N_data 1000 --N_data_test 100 --layersList 784 120 40 --expand_output 4 --lrW 0.1 0.1 --weightClip 1 -- --lrB 0.1 0.1 --biasClip 1 --batchSize 1 --test_batchSize 128 --epochs 50 --T 20 --Kmax 10 --beta 2  --activationFun heaviside --gamma_neur 0.5 --clamped 1 --rho_threshold 0.5 --device -1 --
+```
 
 # Training the convolutional architecture
 
@@ -285,6 +285,6 @@ Each file contains the same functions but adapted for each architecture.
 
 ## Commands to be run in the terminal to reproduce the results of the paper:
 
-    ```
-    python Conv/QA-SA/main.py --simulated 1 --dataset pattern --layersList 4 --expand_output 2 --convList 4 1 --padding 0 --kernelSize 2 --stride 1 --Fpool 2 --pool_coef 0.25 --lrWeightsFC 0.1 --lrWeightsCONV 0.1 --lrBiasFC 0.1 --lrBiasCONV 0.1 --batchSize 1 --epochs 20 --chain_strenght 2 --auto_scale 0
-	```
+```
+python Conv/QA-SA/main.py --simulated 1 --dataset pattern --layersList 4 --expand_output 2 --convList 4 1 --padding 0 --kernelSize 2 --stride 1 --Fpool 2 --pool_coef 0.25 --lrWeightsFC 0.1 --lrWeightsCONV 0.1 --lrBiasFC 0.1 --lrBiasCONV 0.1 --batchSize 1 --epochs 20 --chain_strenght 2 --auto_scale 0
+```
